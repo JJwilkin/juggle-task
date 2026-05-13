@@ -10,8 +10,8 @@ allowed-tools: Bash(*) Read Write mcp__claude_ai_Linear__get_issue
 The user invoked this with: $ARGUMENTS
 
 Parse `$ARGUMENTS` to extract a ticket ID. Accept any of these formats:
-- Plain ID: `JUD-4908`, `PROJ-123`, `#42`
-- Linear URL: `https://linear.app/<org>/issue/JUD-4908/some-title` — extract the segment matching `[A-Z]+-[0-9]+` from the URL path
+- Plain ID: `PROJ-123`, `FEAT-42`, `#99`
+- Linear URL: `https://linear.app/<org>/issue/PROJ-123/some-title` — extract the segment matching `[A-Z]+-[0-9]+` from the URL path
 - GitHub Issues URL: extract the issue number
 
 If no argument provided, ask the user for a ticket ID or URL.

@@ -1,73 +1,82 @@
 #!/usr/bin/env bash
-# Juggle installer
-# https://github.com/JJwilkin/juggle
+# Juggle installer — downloads and installs all files directly from GitHub
+# Usage: curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle/main/install.sh | bash
+#
+# Options (set as env vars before piping):
+#   JUGGLE_VERSION   pin a specific tag/branch (default: main)
+#   JUGGLE_BIN_DIR   where to install the jt CLI (default: ~/.local/bin)
 
 set -euo pipefail
 
-SKILLS_DIR="$HOME/.claude/skills"
-BIN_DIR="$HOME/.local/bin"
-JT_CONFIG="$HOME/.jt-config"
-DEFAULT_TICKETS_DIR="$HOME/juggle-tickets"
+REPO="JJwilkin/juggle"
+VERSION="${JUGGLE_VERSION:-main}"
+RAW_BASE="https://raw.githubusercontent.com/${REPO}/${VERSION}"
+SKILLS_DIR="${HOME}/.claude/skills"
+BIN_DIR="${JUGGLE_BIN_DIR:-${HOME}/.local/bin}"
+JT_CONFIG="${HOME}/.jt-config"
+DEFAULT_TICKETS_DIR="${HOME}/juggle-tickets"
 
-# Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 info()    { echo -e "${GREEN}✓${NC} $*"; }
 warning() { echo -e "${YELLOW}!${NC} $*"; }
+error()   { echo -e "${RED}✗${NC} $*" >&2; exit 1; }
+
+# Check for curl
+command -v curl >/dev/null 2>&1 || error "curl is required but not installed."
+
+download() {
+  local url="$1"
+  local dest="$2"
+  mkdir -p "$(dirname "$dest")"
+  curl -fsSL "$url" -o "$dest" || error "Failed to download: $url"
+}
 
 echo ""
-echo "Installing Juggle..."
+echo "Installing Juggle v${VERSION}..."
 echo ""
-
-# Detect script location (works whether run via curl | bash or directly)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 # 1. Install Claude Code skills
-mkdir -p "$SKILLS_DIR"
 for skill in jt-init jt-update jt-switch; do
-  mkdir -p "$SKILLS_DIR/$skill"
-  cp "$SCRIPT_DIR/skills/$skill/SKILL.md" "$SKILLS_DIR/$skill/SKILL.md"
-  info "Skill installed: $SKILLS_DIR/$skill/SKILL.md"
+  dest="${SKILLS_DIR}/${skill}/SKILL.md"
+  download "${RAW_BASE}/skills/${skill}/SKILL.md" "$dest"
+  info "Skill installed:   $dest"
 done
 
 # 2. Install jt CLI
-mkdir -p "$BIN_DIR"
-cp "$SCRIPT_DIR/bin/jt" "$BIN_DIR/jt"
-chmod +x "$BIN_DIR/jt"
-info "CLI installed:   $BIN_DIR/jt"
+jt_dest="${BIN_DIR}/jt"
+download "${RAW_BASE}/bin/jt" "$jt_dest"
+chmod +x "$jt_dest"
+info "CLI installed:     $jt_dest"
 
-# 3. Add ~/.local/bin to PATH if not already present
+# 3. Add ~/.local/bin to PATH if needed
 add_to_path() {
   local rc_file="$1"
   local path_line='export PATH="$HOME/.local/bin:$PATH"'
-  if [[ -f "$rc_file" ]] && grep -q '\.local/bin' "$rc_file"; then
-    return 0
-  fi
-  if [[ -f "$rc_file" ]]; then
-    echo "" >> "$rc_file"
-    echo "# juggle (jt)" >> "$rc_file"
-    echo "$path_line" >> "$rc_file"
-    info "Added ~/.local/bin to PATH in $rc_file"
-  fi
+  [[ ! -f "$rc_file" ]] && return 0
+  grep -q '\.local/bin' "$rc_file" && return 0
+  printf '\n# juggle (jt)\n%s\n' "$path_line" >> "$rc_file"
+  info "Added ~/.local/bin to PATH in $rc_file"
 }
 
-if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-  add_to_path "$HOME/.zshrc"
-  add_to_path "$HOME/.bashrc"
-  warning "~/.local/bin was added to PATH. Restart your shell or run: export PATH=\"\$HOME/.local/bin:\$PATH\""
+if [[ ":$PATH:" != *":${HOME}/.local/bin:"* ]]; then
+  add_to_path "${HOME}/.zshrc"
+  add_to_path "${HOME}/.bashrc"
+  warning "~/.local/bin added to PATH. Run: export PATH=\"\$HOME/.local/bin:\$PATH\""
 fi
 
-# 4. Create default config and tickets dir if not set
+# 4. Create default config and tickets dir if not already set
 if [[ ! -f "$JT_CONFIG" ]]; then
   echo "$DEFAULT_TICKETS_DIR" > "$JT_CONFIG"
   mkdir -p "$DEFAULT_TICKETS_DIR"
-  info "Tickets dir:     $DEFAULT_TICKETS_DIR"
-  info "Config:          $JT_CONFIG"
+  info "Tickets directory: $DEFAULT_TICKETS_DIR"
+  info "Config:            $JT_CONFIG"
 else
   existing=$(cat "$JT_CONFIG")
-  info "Config exists:   $existing (unchanged)"
+  info "Config exists:     $existing (unchanged)"
 fi
 
 echo ""

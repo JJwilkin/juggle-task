@@ -17,7 +17,7 @@ Use the path from the file as `TICKETS_DIR`. If missing or empty, fall back to `
 
 ## Parse argument
 
-Accept formats: `JUD-4908`, `jud-4908`, `4908`. Normalize to uppercase (e.g. `JUD-4908`). If no argument provided, read `<TICKETS_DIR>/INDEX.md`, print the ticket list, and ask the user to choose one.
+Accept formats: `PROJ-123`, `proj-123`, `123`. Normalize to uppercase (e.g. `PROJ-123`). If no argument provided, read `<TICKETS_DIR>/INDEX.md`, print the ticket list, and ask the user to choose one.
 
 ## Verify
 

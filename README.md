@@ -7,11 +7,11 @@ When you work across multiple tickets and Claude sessions, context disappears ev
 ## How it works
 
 ```
-/jt-init JUD-4908        ← creates ~/juggle-tickets/JUD-4908/ from your ticket tracker
+/jt-init PROJ-123        ← creates ~/juggle-tickets/PROJ-123/ from your ticket tracker
   ... do work ...
 /jt-update               ← saves what you did + next steps to CONTEXT.md
   ... switch tickets ...
-jt open JUD-4908         ← checks out the branch, launches Claude with full context
+jt open PROJ-123         ← checks out the branch, launches Claude with full context
 ```
 
 Each ticket directory contains:
@@ -22,7 +22,7 @@ Each ticket directory contains:
 ## Install
 
 ```bash
-git clone https://github.com/JJwilkin/juggle && cd juggle && bash install.sh
+curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle/main/install.sh | bash
 ```
 
 This installs:
@@ -30,6 +30,11 @@ This installs:
 - The `jt` CLI to `~/.local/bin/jt`
 
 **Then restart Claude Code** to load the new skills.
+
+To pin a specific version:
+```bash
+JUGGLE_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle/main/install.sh | bash
+```
 
 ## Claude Code skills
 
@@ -43,14 +48,14 @@ Run these inside a Claude Code session:
 
 ### `/jt-init`
 
-Accepts a ticket ID or URL:
+Accepts a ticket ID or URL from any tracker:
 ```
-/jt-init JUD-4908
-/jt-init https://linear.app/myorg/issue/JUD-4908/my-ticket-title
-/jt-init PROJ-42
+/jt-init PROJ-123
+/jt-init https://linear.app/myorg/issue/PROJ-123/my-ticket-title
+/jt-init #42
 ```
 
-With [Linear MCP](#linear-integration) configured, it auto-populates from your issue tracker. Without it, it asks for a title and description.
+With [Linear MCP](#linear-integration) configured, it auto-populates from your issue tracker. Without it, it asks for a title and description — works with any tracker or none at all.
 
 ### `/jt-update`
 
@@ -58,25 +63,25 @@ Run at the end of a session to checkpoint your work:
 ```
 /jt-update
 ```
-Claude detects the current ticket from your branch name, asks what you accomplished, and updates `CONTEXT.md` with the session notes and new next steps.
+Claude detects the current ticket from your branch name, asks what you accomplished, and updates `CONTEXT.md` with session notes and new next steps.
 
 ### `/jt-switch`
 
 Load a ticket's context into the current Claude session:
 ```
-/jt-switch JUD-4908
+/jt-switch PROJ-123
 ```
 Checks out the branch and prints a structured summary so Claude can immediately resume.
 
 ## Terminal CLI
 
 ```bash
-jt ls                      # list all tracked tickets
-jt switch JUD-4908         # checkout branch + print CONTEXT.md
-jt open JUD-4908           # checkout branch + launch claude with context pre-loaded
-jt config                  # show tickets directory
-jt config set ~/my-tickets # change tickets directory
-jt help                    # show all commands
+jt ls                        # list all tracked tickets
+jt switch PROJ-123           # checkout branch + print CONTEXT.md
+jt open   PROJ-123           # checkout branch + launch claude with context pre-loaded
+jt config                    # show tickets directory
+jt config set ~/my-tickets   # change tickets directory
+jt help                      # show all commands
 ```
 
 `jt open` is the fastest way to resume work: it checks out the branch and launches Claude Code with your `CONTEXT.md` as the opening message.
@@ -106,7 +111,7 @@ Without Linear, `/jt-init` simply asks for a title and description — it works 
 ## Uninstall
 
 ```bash
-bash uninstall.sh
+curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle/main/uninstall.sh | bash
 ```
 
 This removes the Claude skills and `jt` binary. Your tickets directory and `~/.jt-config` are left untouched.

@@ -14,11 +14,11 @@ Use the path from the file as `TICKETS_DIR`. If missing or empty, fall back to `
 
 ## Detect current ticket
 
-Run `git branch --show-current`. Extract the ticket ID by finding a pattern like `jud-XXXX`, `proj-XXXX`, or any `[a-z]+-[0-9]+` segment (case-insensitive). Normalize to uppercase (e.g. `joshua/jud-4908-s3-export` → `JUD-4908`).
+Run `git branch --show-current`. Extract the ticket ID by finding any `[a-z]+-[0-9]+` segment (case-insensitive), e.g. `proj-123`, `feat-42`. Normalize to uppercase (e.g. `my-branch/proj-123-my-feature` → `PROJ-123`).
 
 Verify `<TICKETS_DIR>/<ID>/` exists. If not, tell the user to run `/jt-init <ID>` first.
 
-If no ticket ID can be determined from the branch, ask: "Which ticket are you updating? (e.g. JUD-4908)"
+If no ticket ID can be determined from the branch, ask: "Which ticket are you updating? (e.g. PROJ-123)"
 
 ## Gather session info
 
