@@ -40,7 +40,7 @@ echo "Installing Juggle v${VERSION}..."
 echo ""
 
 # 1. Install Claude Code skills
-for skill in jt-init jt-update jt-switch; do
+for skill in jt-init jt-update; do
   dest="${SKILLS_DIR}/${skill}/SKILL.md"
   download "${RAW_BASE}/skills/${skill}/SKILL.md" "$dest"
   info "Skill installed:   $dest"

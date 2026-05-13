@@ -17,7 +17,7 @@ echo "Uninstalling Juggle..."
 echo ""
 
 # Remove Claude skills
-for skill in jt-init jt-update jt-switch; do
+for skill in jt-init jt-update; do
   skill_path="$SKILLS_DIR/$skill"
   if [[ -d "$skill_path" ]]; then
     rm -rf "$skill_path"
