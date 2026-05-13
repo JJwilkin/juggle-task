@@ -1,0 +1,11 @@
+{
+  "name": "juggle",
+  "description": "Persistent ticket context for Claude Code. Never lose context when switching between tasks.",
+  "author": {
+    "name": "Joshua Wilkinson",
+    "email": "joshua@judgmentlabs.ai",
+    "github": "JJwilkin"
+  },
+  "homepage": "https://github.com/JJwilkin/juggle",
+  "version": "0.1.0"
+}
