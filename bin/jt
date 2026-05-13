@@ -33,6 +33,40 @@ _jt_get_repo() {
   grep "^\*\*Repo\*\*" "$context_file" 2>/dev/null | head -1 | sed 's/\*\*Repo\*\*: //'
 }
 
+_jt_pick_ticket() {
+  local dir="$1"
+  local index="$dir/INDEX.md"
+
+  [[ ! -f "$index" ]] && { echo "No tickets found. Run 'jt init <ticket>' first."; exit 1; }
+
+  local ids=() titles=()
+  while IFS= read -r line; do
+    [[ "$line" =~ ^\|[[:space:]]\[([A-Z]+-[0-9]+)\] ]] || continue
+    local id="${BASH_REMATCH[1]}"
+    local title
+    title=$(echo "$line" | cut -d'|' -f3 | xargs)
+    ids+=("$id")
+    titles+=("$title")
+  done < "$index"
+
+  [[ ${#ids[@]} -eq 0 ]] && { echo "No tickets found. Run 'jt init <ticket>' first."; exit 1; }
+
+  echo "Available tickets:"
+  echo ""
+  for i in "${!ids[@]}"; do
+    printf "  %d) %-12s %s\n" "$((i+1))" "${ids[$i]}" "${titles[$i]}"
+  done
+  echo ""
+  read -rp "Select (1-${#ids[@]}): " sel
+
+  [[ "$sel" =~ ^[0-9]+$ ]] && (( sel >= 1 && sel <= ${#ids[@]} )) || {
+    echo "Invalid selection."
+    exit 1
+  }
+
+  _PICKED_TICKET="${ids[$((sel-1))]}"
+}
+
 _jt_checkout() {
   local ticket_id="$1" context_file="$2"
   local branch repo
@@ -101,12 +135,16 @@ cmd_ls() {
 
 cmd_switch() {
   local raw_id="${1:-}"
-  [[ -z "$raw_id" ]] && { echo "Usage: jt switch <TICKET-ID>"; exit 1; }
+  local dir
+  dir=$(_jt_tickets_dir)
+  if [[ -z "$raw_id" ]]; then
+    _jt_pick_ticket "$dir"
+    raw_id="$_PICKED_TICKET"
+    echo ""
+  fi
 
   local ticket_id
   ticket_id=$(_jt_normalize_id "$raw_id")
-  local dir
-  dir=$(_jt_tickets_dir)
   local context_file="$dir/$ticket_id/CONTEXT.md"
 
   [[ ! -f "$context_file" ]] && {
@@ -124,12 +162,16 @@ cmd_switch() {
 
 cmd_open() {
   local raw_id="${1:-}"
-  [[ -z "$raw_id" ]] && { echo "Usage: jt open <TICKET-ID>"; exit 1; }
+  local dir
+  dir=$(_jt_tickets_dir)
+  if [[ -z "$raw_id" ]]; then
+    _jt_pick_ticket "$dir"
+    raw_id="$_PICKED_TICKET"
+    echo ""
+  fi
 
   local ticket_id
   ticket_id=$(_jt_normalize_id "$raw_id")
-  local dir
-  dir=$(_jt_tickets_dir)
   local context_file="$dir/$ticket_id/CONTEXT.md"
 
   [[ ! -f "$context_file" ]] && {
