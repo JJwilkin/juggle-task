@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Juggle uninstaller
-# https://github.com/JJwilkin/juggle
+# https://github.com/JJwilkin/juggle-task
 
 set -euo pipefail
 

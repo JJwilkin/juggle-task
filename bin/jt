@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # juggle (jt) — ticket context manager
-# https://github.com/JJwilkin/juggle
+# https://github.com/JJwilkin/juggle-task
 
 set -euo pipefail
 
@@ -65,7 +65,7 @@ Usage:
 The init, update, and switch commands mirror the Claude skills
 /jt-init, /jt-update, /jt-switch — use whichever is more convenient.
 
-Docs: https://github.com/JJwilkin/juggle
+Docs: https://github.com/JJwilkin/juggle-task
 EOF
 }
 

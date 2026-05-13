@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Juggle installer — downloads and installs all files directly from GitHub
-# Usage: curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle-task/main/install.sh | bash
 #
 # Options (set as env vars before piping):
 #   JUGGLE_VERSION   pin a specific tag/branch (default: main)
@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-REPO="JJwilkin/juggle"
+REPO="JJwilkin/juggle-task"
 VERSION="${JUGGLE_VERSION:-main}"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/${VERSION}"
 SKILLS_DIR="${HOME}/.claude/skills"
@@ -87,4 +87,4 @@ echo "  1. Restart Claude Code to load the new skills"
 echo "  2. Run /jt-init <ticket-id> inside Claude Code to create your first ticket"
 echo "  3. Run 'jt help' in your terminal for CLI usage"
 echo ""
-echo "Docs: https://github.com/JJwilkin/juggle"
+echo "Docs: https://github.com/JJwilkin/juggle-task"

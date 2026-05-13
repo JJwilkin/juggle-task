@@ -22,7 +22,7 @@ Each ticket directory contains:
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle-task/main/install.sh | bash
 ```
 
 This installs:
@@ -33,7 +33,7 @@ This installs:
 
 To pin a specific version:
 ```bash
-JUGGLE_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle/main/install.sh | bash
+JUGGLE_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle-task/main/install.sh | bash
 ```
 
 ## Commands
@@ -107,7 +107,7 @@ Without Linear, `/jt-init` simply asks for a title and description — it works 
 ## Uninstall
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/JJwilkin/juggle-task/main/uninstall.sh | bash
 ```
 
 This removes the Claude skills and `jt` binary. Your tickets directory and `~/.jt-config` are left untouched.
