@@ -211,7 +211,21 @@ Check which case applies:
 
 If `REPO_ROOT` is `(not in a git repo)`, skip this step and note it in the report.
 
-### 10. Report to user
+### 10. Rename this Claude session
+
+Append an `ai-title` record to the current session file so the chat is named after the ticket:
+
+```bash
+SESSION_ID="$CLAUDE_CODE_SESSION_ID"
+CWD_SLUG=$(pwd | sed 's|/|-|g')
+SESSION_FILE="$HOME/.claude/projects/${CWD_SLUG}/${SESSION_ID}.jsonl"
+if [[ -f "$SESSION_FILE" && -n "$SESSION_ID" ]]; then
+  python3 -c "import json,sys; print(json.dumps({'type':'ai-title','aiTitle':sys.argv[1],'sessionId':sys.argv[2]}))" \
+    "<ID>: <title>" "$SESSION_ID" >> "$SESSION_FILE"
+fi
+```
+
+### 11. Report to user
 
 ```
 <ID> initialized.

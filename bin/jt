@@ -123,7 +123,6 @@ juggle (jt) v${JT_VERSION} — ticket context manager for Claude Code
 Usage:
   jt init   <ticket>          create ticket context (launches Claude)
   jt update                   save session progress to CONTEXT.md (launches Claude)
-  jt switch [ticket]          checkout branch + print CONTEXT.md (no Claude)
   jt open   [ticket]          checkout branch + launch Claude with context pre-loaded
   jt ls                       list all tracked tickets
   jt upgrade                  upgrade jt to the latest version
@@ -131,8 +130,7 @@ Usage:
   jt config set <path>        set tickets directory
   jt help                     show this message
 
-The init, update, and switch commands mirror the Claude skills
-/jt-init, /jt-update, /jt-switch — use whichever is more convenient.
+Claude skills: /jt-init, /jt-update
 
 Docs: https://github.com/JJwilkin/juggle-task
 EOF
@@ -143,9 +141,20 @@ cmd_init() {
   [[ -z "$ticket" ]] && { echo "Usage: jt init <TICKET-ID or URL>"; exit 1; }
   local dir
   dir=$(_jt_tickets_dir)
+  local skill_file="$HOME/.claude/skills/jt-init/SKILL.md"
   echo "Launching Claude to initialize $ticket..."
   echo ""
-  claude --add-dir "$dir" "/jt-init $ticket"
+  if [[ -f "$skill_file" ]]; then
+    local skill_body
+    # Strip YAML frontmatter (everything up to and including second ---) and substitute $ARGUMENTS
+    skill_body=$(awk 'BEGIN{p=0;n=0} /^---/{n++;if(n==2){p=1};next} p{print}' "$skill_file" \
+      | sed "s/\\\$ARGUMENTS/$ticket/g")
+    claude -n "$ticket" --add-dir "$dir" \
+      --append-system-prompt "$skill_body" \
+      "/jt-init $ticket"
+  else
+    claude -n "$ticket" --add-dir "$dir" "/jt-init $ticket"
+  fi
 }
 
 cmd_update() {
@@ -168,32 +177,6 @@ cmd_ls() {
   fi
 }
 
-cmd_switch() {
-  local raw_id="${1:-}"
-  local dir
-  dir=$(_jt_tickets_dir)
-  if [[ -z "$raw_id" ]]; then
-    _jt_pick_ticket "$dir"
-    raw_id="$_PICKED_TICKET"
-    echo ""
-  fi
-
-  local ticket_id
-  ticket_id=$(_jt_normalize_id "$raw_id")
-  local context_file="$dir/$ticket_id/CONTEXT.md"
-
-  [[ ! -f "$context_file" ]] && {
-    echo "No context found for $ticket_id. Run 'jt init $ticket_id' first."
-    exit 1
-  }
-
-  _jt_checkout "$ticket_id" "$context_file"
-
-  echo ""
-  echo "=== CONTEXT: $ticket_id ==="
-  cat "$context_file"
-  echo "==========================="
-}
 
 cmd_open() {
   local raw_id="${1:-}"
@@ -216,18 +199,24 @@ cmd_open() {
 
   _jt_checkout "$ticket_id" "$context_file"
 
-  local opening_prompt
-  opening_prompt="I'm resuming work on $ticket_id. Here is the current context:
-
-$(cat "$context_file")
-
-Please confirm you understand where we left off, then ask what I'd like to start with — or suggest the most logical next step from the Next Steps section."
+  local session_name
+  session_name=$(head -1 "$context_file" | sed 's/^# //' | sed 's/ — Agent Context$//')
 
   echo "Launching Claude for $ticket_id..."
   echo ""
 
-  claude --add-dir "$dir" -p "$opening_prompt" 2>/dev/null \
-    || claude --add-dir "$dir"
+  local context_content
+  context_content=$(cat "$context_file")
+  local intro_prompt
+  intro_prompt="You are resuming work on $ticket_id. Here is the full context for this ticket:
+
+$context_content
+
+Briefly acknowledge where we left off and ask what I'd like to start with — or suggest the most logical next step from the Next Steps section."
+
+  claude -n "$session_name" --add-dir "$dir" \
+    --append-system-prompt "$intro_prompt" \
+    "Ready to resume."
 }
 
 cmd_upgrade() {
@@ -282,7 +271,6 @@ main() {
   case "$cmd" in
     init)           cmd_init "$@" ;;
     update)         cmd_update "$@" ;;
-    switch)         cmd_switch "$@" ;;
     open)           cmd_open "$@" ;;
     ls)             cmd_ls ;;
     upgrade)        cmd_upgrade ;;
