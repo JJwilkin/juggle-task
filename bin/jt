@@ -4,8 +4,12 @@
 
 set -euo pipefail
 
+JT_VERSION="0.1.0"
 JT_CONFIG="$HOME/.jt-config"
+JT_UPDATE_CACHE="$HOME/.jt-update-check"
+JT_UPDATE_INTERVAL=86400  # check once per day
 DEFAULT_TICKETS_DIR="$HOME/juggle-tickets"
+REPO="JJwilkin/juggle-task"
 
 _jt_tickets_dir() {
   local dir
@@ -31,6 +35,36 @@ _jt_get_branch() {
 _jt_get_repo() {
   local context_file="$1"
   grep "^\*\*Repo\*\*" "$context_file" 2>/dev/null | head -1 | sed 's/\*\*Repo\*\*: //'
+}
+
+# Print a notice if a newer version is cached, then kick off a background
+# refresh of the cache. Never blocks — network call is async.
+_jt_check_update() {
+  local now cached_time cached_version
+  now=$(date +%s)
+
+  # Read whatever is cached (instant, no network)
+  if [[ -f "$JT_UPDATE_CACHE" ]]; then
+    read -r cached_time cached_version < "$JT_UPDATE_CACHE" 2>/dev/null || true
+    if [[ -n "$cached_version" && "$cached_version" != "$JT_VERSION" ]]; then
+      printf '\n  Update available: %s → %s  (run '"'"'jt upgrade'"'"' to update)\n' \
+        "$JT_VERSION" "$cached_version" >&2
+    fi
+    # Cache still fresh — no background fetch needed
+    if [[ -n "${cached_time:-}" ]] && (( now - cached_time < JT_UPDATE_INTERVAL )); then
+      return 0
+    fi
+  fi
+
+  # Refresh cache in background — never blocks the current command
+  (
+    local latest
+    latest=$(curl -fsSL --max-time 3 \
+      "https://raw.githubusercontent.com/${REPO}/main/VERSION" \
+      2>/dev/null | tr -d '[:space:]' || true)
+    [[ -n "$latest" ]] && printf '%s %s\n' "$(date +%s)" "$latest" > "$JT_UPDATE_CACHE"
+  ) &
+  disown 2>/dev/null || true
 }
 
 _jt_pick_ticket() {
@@ -83,15 +117,16 @@ _jt_checkout() {
 }
 
 cmd_help() {
-  cat <<'EOF'
-juggle (jt) — ticket context manager for Claude Code
+  cat <<EOF
+juggle (jt) v${JT_VERSION} — ticket context manager for Claude Code
 
 Usage:
   jt init   <ticket>          create ticket context (launches Claude)
   jt update                   save session progress to CONTEXT.md (launches Claude)
-  jt switch <ticket>          checkout branch + print CONTEXT.md (no Claude)
-  jt open   <ticket>          checkout branch + launch Claude with context pre-loaded
+  jt switch [ticket]          checkout branch + print CONTEXT.md (no Claude)
+  jt open   [ticket]          checkout branch + launch Claude with context pre-loaded
   jt ls                       list all tracked tickets
+  jt upgrade                  upgrade jt to the latest version
   jt config                   show current tickets directory
   jt config set <path>        set tickets directory
   jt help                     show this message
@@ -195,6 +230,20 @@ Please confirm you understand where we left off, then ask what I'd like to start
     || claude --add-dir "$dir"
 }
 
+cmd_upgrade() {
+  echo "Upgrading Juggle..."
+  echo ""
+  if curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/install.sh" | bash; then
+    rm -f "$JT_UPDATE_CACHE"
+    echo ""
+    echo "Upgraded to the latest version."
+    echo "Restart Claude Code to load updated skills."
+  else
+    echo "Upgrade failed. Check your connection and try again."
+    exit 1
+  fi
+}
+
 cmd_config() {
   local subcmd="${1:-}"
   local dir
@@ -211,6 +260,7 @@ cmd_config() {
       ;;
     "")
       echo "Tickets directory: $dir"
+      echo "Version:           $JT_VERSION"
       if [[ -f "$JT_CONFIG" ]]; then
         echo "Config file:       $JT_CONFIG"
       else
@@ -230,18 +280,26 @@ main() {
   shift || true
 
   case "$cmd" in
-    init)    cmd_init "$@" ;;
-    update)  cmd_update "$@" ;;
-    switch)  cmd_switch "$@" ;;
-    open)    cmd_open "$@" ;;
-    ls)      cmd_ls ;;
-    config)  cmd_config "$@" ;;
+    init)           cmd_init "$@" ;;
+    update)         cmd_update "$@" ;;
+    switch)         cmd_switch "$@" ;;
+    open)           cmd_open "$@" ;;
+    ls)             cmd_ls ;;
+    upgrade)        cmd_upgrade ;;
+    config)         cmd_config "$@" ;;
     help|--help|-h) cmd_help ;;
+    version|--version|-v) echo "jt $JT_VERSION" ;;
     *)
       echo "Unknown command: $cmd"
       echo "Run 'jt help' for usage."
       exit 1
       ;;
+  esac
+
+  # Check for updates after every command except upgrade/help/version
+  case "$cmd" in
+    upgrade|help|--help|-h|version|--version|-v) ;;
+    *) _jt_check_update ;;
   esac
 }
 
