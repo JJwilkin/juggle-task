@@ -1,4 +1,4 @@
-# Juggle
+# Juggle-Task (jt)
 
 > Persistent ticket context for Claude Code. Never lose your place when switching between tasks.
 
