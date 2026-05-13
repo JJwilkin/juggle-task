@@ -16,7 +16,7 @@ Use the path from the file as `TICKETS_DIR`. If missing or empty, fall back to `
 
 Run `git branch --show-current`. Extract the ticket ID by finding any `[a-z]+-[0-9]+` segment (case-insensitive), e.g. `proj-123`, `feat-42`. Normalize to uppercase (e.g. `my-branch/proj-123-my-feature` → `PROJ-123`).
 
-Verify `<TICKETS_DIR>/<ID>/` exists. If not, tell the user to run `/jt-init <ID>` first.
+Verify `<TICKETS_DIR>/<ID>/` exists. If not, tell the user to run `jt init <ID>` (terminal) or `/jt-init <ID>` (Claude skill) first.
 
 If no ticket ID can be determined from the branch, ask: "Which ticket are you updating? (e.g. PROJ-123)"
 

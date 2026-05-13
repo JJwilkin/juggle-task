@@ -21,7 +21,7 @@ Accept formats: `PROJ-123`, `proj-123`, `123`. Normalize to uppercase (e.g. `PRO
 
 ## Verify
 
-Check that `<TICKETS_DIR>/<ID>/CONTEXT.md` exists. If not, tell the user to run `/jt-init <ID>` first.
+Check that `<TICKETS_DIR>/<ID>/CONTEXT.md` exists. If not, tell the user to run `jt init <ID>` (terminal) or `/jt-init <ID>` (Claude skill) first.
 
 ## Read CONTEXT.md
 

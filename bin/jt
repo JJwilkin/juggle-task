@@ -33,25 +33,58 @@ _jt_get_repo() {
   grep "^\*\*Repo\*\*" "$context_file" 2>/dev/null | head -1 | sed 's/\*\*Repo\*\*: //'
 }
 
+_jt_checkout() {
+  local ticket_id="$1" context_file="$2"
+  local branch repo
+  branch=$(_jt_get_branch "$context_file")
+  repo=$(_jt_get_repo "$context_file")
+
+  if [[ -n "$branch" && -n "$repo" && "$repo" != "(not in a git repo)" && -d "$repo" ]]; then
+    cd "$repo"
+    git checkout "$branch" 2>/dev/null \
+      || git checkout --track "origin/$branch" 2>/dev/null \
+      || echo "Warning: could not switch branch (may already be on it)"
+    echo "Branch: $branch"
+  fi
+}
+
 cmd_help() {
   cat <<'EOF'
 juggle (jt) — ticket context manager for Claude Code
 
 Usage:
+  jt init   <ticket>          create ticket context (launches Claude)
+  jt update                   save session progress to CONTEXT.md (launches Claude)
+  jt switch <ticket>          checkout branch + print CONTEXT.md (no Claude)
+  jt open   <ticket>          checkout branch + launch Claude with context pre-loaded
   jt ls                       list all tracked tickets
-  jt switch <TICKET-ID>       git checkout branch + print CONTEXT.md
-  jt open   <TICKET-ID>       git checkout + launch claude with context pre-loaded
   jt config                   show current tickets directory
   jt config set <path>        set tickets directory
   jt help                     show this message
 
-Claude skills (run inside Claude Code):
-  /jt-init  <ticket>          create ticket context from ID or URL
-  /jt-update                  save session progress to CONTEXT.md
-  /jt-switch <ticket>         load ticket context into current session
+The init, update, and switch commands mirror the Claude skills
+/jt-init, /jt-update, /jt-switch — use whichever is more convenient.
 
 Docs: https://github.com/JJwilkin/juggle
 EOF
+}
+
+cmd_init() {
+  local ticket="${1:-}"
+  [[ -z "$ticket" ]] && { echo "Usage: jt init <TICKET-ID or URL>"; exit 1; }
+  local dir
+  dir=$(_jt_tickets_dir)
+  echo "Launching Claude to initialize $ticket..."
+  echo ""
+  claude --add-dir "$dir" "/jt-init $ticket"
+}
+
+cmd_update() {
+  local dir
+  dir=$(_jt_tickets_dir)
+  echo "Launching Claude to save session context..."
+  echo ""
+  claude --add-dir "$dir" "/jt-update $*"
 }
 
 cmd_ls() {
@@ -62,7 +95,7 @@ cmd_ls() {
     cat "$index"
   else
     echo "No tickets found at: $dir"
-    echo "Run /jt-init <ticket> inside Claude Code to create your first ticket."
+    echo "Run 'jt init <ticket>' to create your first ticket."
   fi
 }
 
@@ -77,23 +110,11 @@ cmd_switch() {
   local context_file="$dir/$ticket_id/CONTEXT.md"
 
   [[ ! -f "$context_file" ]] && {
-    echo "No context found for $ticket_id."
-    echo "Run /jt-init $ticket_id in Claude Code first."
+    echo "No context found for $ticket_id. Run 'jt init $ticket_id' first."
     exit 1
   }
 
-  local branch
-  branch=$(_jt_get_branch "$context_file")
-  local repo
-  repo=$(_jt_get_repo "$context_file")
-
-  if [[ -n "$branch" && -n "$repo" && "$repo" != "(not in a git repo)" && -d "$repo" ]]; then
-    echo "Switching to $ticket_id ($branch)..."
-    cd "$repo"
-    git checkout "$branch" 2>/dev/null \
-      || git checkout --track "origin/$branch" 2>/dev/null \
-      || echo "Warning: could not switch branch (may already be on it)"
-  fi
+  _jt_checkout "$ticket_id" "$context_file"
 
   echo ""
   echo "=== CONTEXT: $ticket_id ==="
@@ -112,22 +133,11 @@ cmd_open() {
   local context_file="$dir/$ticket_id/CONTEXT.md"
 
   [[ ! -f "$context_file" ]] && {
-    echo "No context found for $ticket_id."
-    echo "Run /jt-init $ticket_id in Claude Code first."
+    echo "No context found for $ticket_id. Run 'jt init $ticket_id' first."
     exit 1
   }
 
-  local branch
-  branch=$(_jt_get_branch "$context_file")
-  local repo
-  repo=$(_jt_get_repo "$context_file")
-
-  if [[ -n "$branch" && -n "$repo" && "$repo" != "(not in a git repo)" && -d "$repo" ]]; then
-    cd "$repo"
-    git checkout "$branch" 2>/dev/null \
-      || git checkout --track "origin/$branch" 2>/dev/null \
-      || true
-  fi
+  _jt_checkout "$ticket_id" "$context_file"
 
   local opening_prompt
   opening_prompt="I'm resuming work on $ticket_id. Here is the current context:
@@ -137,7 +147,6 @@ $(cat "$context_file")
 Please confirm you understand where we left off, then ask what I'd like to start with — or suggest the most logical next step from the Next Steps section."
 
   echo "Launching Claude for $ticket_id..."
-  [[ -n "$branch" ]] && echo "Branch: $branch"
   echo ""
 
   claude --add-dir "$dir" -p "$opening_prompt" 2>/dev/null \
@@ -153,7 +162,6 @@ cmd_config() {
     set)
       local new_path="${2:-}"
       [[ -z "$new_path" ]] && { echo "Usage: jt config set <path>"; exit 1; }
-      # Expand ~ manually
       new_path="${new_path/#\~/$HOME}"
       echo "$new_path" > "$JT_CONFIG"
       mkdir -p "$new_path"
@@ -175,15 +183,16 @@ cmd_config() {
   esac
 }
 
-# Main
 main() {
   local cmd="${1:-help}"
   shift || true
 
   case "$cmd" in
-    ls)      cmd_ls ;;
+    init)    cmd_init "$@" ;;
+    update)  cmd_update "$@" ;;
     switch)  cmd_switch "$@" ;;
     open)    cmd_open "$@" ;;
+    ls)      cmd_ls ;;
     config)  cmd_config "$@" ;;
     help|--help|-h) cmd_help ;;
     *)
