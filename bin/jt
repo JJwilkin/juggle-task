@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-JT_VERSION="0.1.0"
+JT_VERSION="0.2.0"
 JT_CONFIG="$HOME/.jt-config"
 JT_UPDATE_CACHE="$HOME/.jt-update-check"
 JT_UPDATE_INTERVAL=86400  # check once per day
