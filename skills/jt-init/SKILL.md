@@ -223,9 +223,7 @@ if [[ -f "$SESSION_FILE" && -n "$SESSION_ID" ]]; then
   python3 -c "import json,sys; print(json.dumps({'type':'ai-title','aiTitle':sys.argv[1],'sessionId':sys.argv[2]}))" \
     "<ID>: <title>" "$SESSION_ID" >> "$SESSION_FILE"
 fi
-if [[ -n "$SESSION_ID" ]]; then
-  echo "$SESSION_ID" > "<TICKETS_DIR>/<ID>/.session_id"
-fi
+echo "<ID>" > "<TICKETS_DIR>/<ID>/.session_name"
 ```
 
 ### 11. Report to user
