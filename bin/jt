@@ -103,9 +103,9 @@ _jt_checkout() {
   repo=$(_jt_get_repo "$context_file")
 
   if [[ -n "$branch" && -n "$repo" && "$repo" != "(not in a git repo)" && -d "$repo" ]]; then
-    cd "$repo"
-    git checkout "$branch" 2>/dev/null \
-      || git checkout --track "origin/$branch" 2>/dev/null \
+    git -C "$repo" fetch origin --quiet 2>/dev/null || true
+    git -C "$repo" checkout "$branch" 2>/dev/null \
+      || git -C "$repo" checkout --track "origin/$branch" 2>/dev/null \
       || echo "Warning: could not switch branch (may already be on it)"
     echo "Branch: $branch"
   fi
@@ -216,39 +216,28 @@ cmd_open() {
 
   _jt_checkout "$ticket_id" "$context_file"
 
-  local session_file="$dir/$ticket_id/.session_name"
-  local session_name
+  local session_file="$dir/$ticket_id/.session"
 
-  # Resume by stored session name if available
+  # Resume the saved session: cd to its original project dir then --resume by UUID
   if [[ -f "$session_file" ]]; then
-    session_name=$(cat "$session_file")
-    if [[ -n "$session_name" ]]; then
+    local session_dir session_uuid
+    session_dir=$(head -1 "$session_file")
+    session_uuid=$(sed -n '2p' "$session_file")
+    if [[ -n "$session_dir" && -n "$session_uuid" && -d "$session_dir" ]]; then
       echo "Resuming session for $ticket_id..."
       echo ""
-      claude --resume "$session_name"
+      cd "$session_dir" && claude --resume "$session_uuid"
       return
     fi
   fi
 
-  # No stored session name — derive it, save it, then start a new session
+  # No saved session — start a fresh named session
+  local session_name
   session_name=$(head -1 "$context_file" | sed 's/^# //' | sed 's/ — Agent Context$//')
-  echo "$session_name" > "$session_file"
 
   echo "Starting new session for $ticket_id..."
   echo ""
-
-  local context_content
-  context_content=$(cat "$context_file")
-  local intro_prompt
-  intro_prompt="You have context loaded for ticket $ticket_id. Here is the full context:
-
-$context_content
-
-When the session starts, output ONLY: the ticket ID and title, status, and the Next Steps list — nothing else. Do not start any work, do not explore any files, do not suggest actions. Just display the context summary and wait for the user's instruction."
-
-  claude -n "$session_name" --add-dir "$dir" \
-    --append-system-prompt "$intro_prompt" \
-    "Show context summary."
+  claude -n "$session_name" --add-dir "$dir"
 }
 
 cmd_upgrade() {
