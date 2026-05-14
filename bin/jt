@@ -102,12 +102,16 @@ _jt_checkout() {
   branch=$(_jt_get_branch "$context_file")
   repo=$(_jt_get_repo "$context_file")
 
-  if [[ -n "$branch" && -n "$repo" && "$repo" != "(not in a git repo)" && -d "$repo" ]]; then
-    git -C "$repo" fetch origin --quiet 2>/dev/null || true
-    git -C "$repo" checkout "$branch" 2>/dev/null \
-      || git -C "$repo" checkout --track "origin/$branch" 2>/dev/null \
-      || echo "Warning: could not switch branch (may already be on it)"
-    echo "Branch: $branch"
+  if [[ -n "$branch" && -n "$repo" && "$repo" != "(not in a git repo)" && "$repo" != "(none)" && -d "$repo" ]]; then
+    if ! git -C "$repo" diff --quiet 2>/dev/null || ! git -C "$repo" diff --cached --quiet 2>/dev/null; then
+      echo "Warning: $repo has uncommitted changes — branch not switched. Commit or stash first."
+    else
+      git -C "$repo" fetch origin --quiet 2>/dev/null || true
+      git -C "$repo" checkout "$branch" 2>/dev/null \
+        || git -C "$repo" checkout --track "origin/$branch" 2>/dev/null \
+        || echo "Warning: could not switch to $branch (may already be on it)"
+      echo "Branch: $branch"
+    fi
   fi
 }
 

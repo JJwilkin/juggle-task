@@ -35,11 +35,17 @@ Run: `cat ~/.jt-config 2>/dev/null`
   mkdir -p <chosen-path>
   ```
 
-### 1. Detect current git repo root
+### 1. Confirm the repo for this ticket
 
 Run: `git rev-parse --show-toplevel 2>/dev/null`
 
-Use the result as `REPO_ROOT`. If not in a git repo, set `REPO_ROOT` to `(not in a git repo)` and continue.
+Show the result to the user and ask them to confirm or override:
+
+> "Which repo should this ticket's branch live in?
+> Detected: `<result>` (or 'not in a git repo' if none found)
+> Press Enter to use it, or type an absolute path (or 'none' to skip branch management):"
+
+Use the confirmed path as `REPO_ROOT`. If the user enters 'none' or leaves it blank with no detected repo, set `REPO_ROOT` to `(none)` and skip steps 9 (branch creation) and the `**Repo**` / `**Working branch**` fields in CONTEXT.md.
 
 ### 2. Fetch ticket details
 
