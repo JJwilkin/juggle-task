@@ -209,15 +209,15 @@ cmd_open() {
   local context_content
   context_content=$(cat "$context_file")
   local intro_prompt
-  intro_prompt="You are resuming work on $ticket_id. Here is the full context for this ticket:
+  intro_prompt="You have context loaded for ticket $ticket_id. Here is the full context:
 
 $context_content
 
-Briefly acknowledge where we left off and ask what I'd like to start with — or suggest the most logical next step from the Next Steps section."
+When the session starts, output ONLY: the ticket ID and title, status, and the Next Steps list — nothing else. Do not start any work, do not explore any files, do not suggest actions. Just display the context summary and wait for the user's instruction."
 
   claude -n "$session_name" --add-dir "$dir" \
     --append-system-prompt "$intro_prompt" \
-    "Ready to resume."
+    "Show context summary."
 }
 
 cmd_upgrade() {
