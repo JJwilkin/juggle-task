@@ -59,7 +59,7 @@ Set priority and status to `(unknown)`, url to the argument if it was a URL.
 
 ### 4. Check if ticket dir exists
 
-If `<TICKETS_DIR>/<ID>/` already exists, stop and tell the user — they should use `/jt-switch` instead.
+If `<TICKETS_DIR>/<ID>/` already exists, stop and tell the user — they should use `jt open <ID>` to resume work on it.
 
 ```bash
 mkdir -p <TICKETS_DIR>/<ID>
@@ -93,7 +93,7 @@ Write `<TICKETS_DIR>/<ID>/README.md`:
 
 ## Quick Resume
 
-`jt switch <ID>`
+`jt open <ID>`
 ```
 
 ### 6. Write CONTEXT.md

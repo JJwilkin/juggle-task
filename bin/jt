@@ -19,12 +19,7 @@ _jt_tickets_dir() {
 }
 
 _jt_normalize_id() {
-  local raw="$1"
-  if [[ "$raw" =~ ^[0-9]+$ ]]; then
-    echo "PROJ-${raw}"
-  else
-    echo "${raw}" | tr '[:lower:]' '[:upper:]'
-  fi
+  echo "$1" | tr '[:lower:]' '[:upper:]'
 }
 
 _jt_get_branch() {
@@ -69,26 +64,27 @@ _jt_check_update() {
 
 _jt_pick_ticket() {
   local dir="$1"
-  local index="$dir/INDEX.md"
-
-  [[ ! -f "$index" ]] && { echo "No tickets found. Run 'jt init <ticket>' first."; exit 1; }
-
   local ids=() titles=()
-  while IFS= read -r line; do
-    [[ "$line" =~ ^\|[[:space:]]\[([A-Z]+-[0-9]+)\] ]] || continue
-    local id="${BASH_REMATCH[1]}"
-    local title
-    title=$(echo "$line" | cut -d'|' -f3 | xargs)
+
+  for context in "$dir"/*/CONTEXT.md; do
+    [[ -f "$context" ]] || continue
+    local id title
+    id=$(basename "$(dirname "$context")")
+    title=$(head -1 "$context" 2>/dev/null \
+      | sed 's/^# //' \
+      | sed 's/ — Agent Context$//' \
+      | sed "s/^${id}: //i" \
+      | sed "s/^$(echo "$id" | tr '[:lower:]' '[:upper:]'): //i")
     ids+=("$id")
     titles+=("$title")
-  done < "$index"
+  done
 
   [[ ${#ids[@]} -eq 0 ]] && { echo "No tickets found. Run 'jt init <ticket>' first."; exit 1; }
 
   echo "Available tickets:"
   echo ""
   for i in "${!ids[@]}"; do
-    printf "  %d) %-12s %s\n" "$((i+1))" "${ids[$i]}" "${titles[$i]}"
+    printf "  %d) %-14s %s\n" "$((i+1))" "${ids[$i]}" "${titles[$i]}"
   done
   echo ""
   read -rp "Select (1-${#ids[@]}): " sel
@@ -188,9 +184,14 @@ cmd_open() {
     echo ""
   fi
 
-  local ticket_id
-  ticket_id=$(_jt_normalize_id "$raw_id")
-  local context_file="$dir/$ticket_id/CONTEXT.md"
+  local ticket_id context_file
+  # Try exact match, then uppercase — ticket dirs can be any case
+  if [[ -d "$dir/$raw_id" ]]; then
+    ticket_id="$raw_id"
+  else
+    ticket_id=$(_jt_normalize_id "$raw_id")
+  fi
+  context_file="$dir/$ticket_id/CONTEXT.md"
 
   [[ ! -f "$context_file" ]] && {
     echo "No context found for $ticket_id. Run 'jt init $ticket_id' first."

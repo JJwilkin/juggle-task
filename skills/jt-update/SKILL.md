@@ -73,7 +73,5 @@ Context saved for <ID>.
   Next steps recorded: <N> items
 
 To resume later:
-  Terminal:  jt switch <ID>
-  In Claude: /jt-switch <ID>
-  With Claude pre-loaded: jt open <ID>
+  jt open <ID>
 ```
