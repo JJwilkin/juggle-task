@@ -8,7 +8,7 @@ JT_VERSION="0.2.0"
 JT_CONFIG="$HOME/.jt-config"
 JT_UPDATE_CACHE="$HOME/.jt-update-check"
 JT_UPDATE_INTERVAL=86400  # check once per day
-DEFAULT_TICKETS_DIR="$HOME/juggle-tickets"
+DEFAULT_TICKETS_DIR="$HOME/juggle-task"
 REPO="JJwilkin/juggle-task"
 
 _jt_tickets_dir() {

@@ -7,7 +7,7 @@ When you work across multiple tickets and Claude sessions, context disappears ev
 ## How it works
 
 ```
-jt init PROJ-123         ← creates ~/juggle-tickets/PROJ-123/ from your ticket tracker
+jt init PROJ-123         ← creates ~/juggle-task/PROJ-123/ from your ticket tracker
   ... do work ...
 /jt-update               ← saves what you did + next steps to CONTEXT.md
   ... close session ...
@@ -104,7 +104,7 @@ Each `jt open` starts a fresh Claude session named after the ticket. Each `/jt-u
 
 ## Configuration
 
-Juggle stores your tickets directory in `~/.jt-config` (a single line containing the path). Default: `~/juggle-tickets`.
+Juggle stores your tickets directory in `~/.jt-config` (a single line containing the path). Default: `~/juggle-task`.
 
 ```bash
 # View current config

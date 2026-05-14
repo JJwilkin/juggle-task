@@ -10,7 +10,7 @@ allowed-tools: Bash(*) Read Write Edit
 
 Run: `cat ~/.jt-config 2>/dev/null`
 
-Use the path from the file as `TICKETS_DIR`. If missing or empty, fall back to `~/juggle-tickets`.
+Use the path from the file as `TICKETS_DIR`. If missing or empty, fall back to `~/juggle-task`.
 
 ## Detect current ticket
 

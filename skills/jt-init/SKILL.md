@@ -26,9 +26,9 @@ Run: `cat ~/.jt-config 2>/dev/null`
 - If the file is missing or empty, ask the user:
 
   > "Where would you like to store your juggle ticket directories?
-  > Press Enter to use the default (`~/juggle-tickets`), or type an absolute path."
+  > Press Enter to use the default (`~/juggle-task`), or type an absolute path."
 
-  Use `~/juggle-tickets` if they press Enter. Expand `~` to the full home path.
+  Use `~/juggle-task` if they press Enter. Expand `~` to the full home path.
   Save the chosen path:
   ```bash
   echo "<chosen-path>" > ~/.jt-config

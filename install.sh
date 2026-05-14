@@ -14,7 +14,7 @@ RAW_BASE="https://raw.githubusercontent.com/${REPO}/${VERSION}"
 SKILLS_DIR="${HOME}/.claude/skills"
 BIN_DIR="${JUGGLE_BIN_DIR:-${HOME}/.local/bin}"
 JT_CONFIG="${HOME}/.jt-config"
-DEFAULT_TICKETS_DIR="${HOME}/juggle-tickets"
+DEFAULT_TICKETS_DIR="${HOME}/juggle-task"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
