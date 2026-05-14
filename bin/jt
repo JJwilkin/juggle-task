@@ -73,8 +73,7 @@ _jt_pick_ticket() {
     title=$(head -1 "$context" 2>/dev/null \
       | sed 's/^# //' \
       | sed 's/ — Agent Context$//' \
-      | sed "s/^${id}: //i" \
-      | sed "s/^$(echo "$id" | tr '[:lower:]' '[:upper:]'): //i")
+      | sed 's/^[A-Za-z0-9-]*: //')
     ids+=("$id")
     titles+=("$title")
   done
@@ -164,13 +163,30 @@ cmd_update() {
 cmd_ls() {
   local dir
   dir=$(_jt_tickets_dir)
-  local index="$dir/INDEX.md"
-  if [[ -f "$index" ]]; then
-    cat "$index"
-  else
+  local found=0
+
+  for context in "$dir"/*/CONTEXT.md; do
+    [[ -f "$context" ]] || continue
+    found=1; break
+  done
+
+  if [[ $found -eq 0 ]]; then
     echo "No tickets found at: $dir"
     echo "Run 'jt init <ticket>' to create your first ticket."
+    return
   fi
+
+  printf "%-14s  %-40s  %s\n" "TICKET" "TITLE" "LAST UPDATED"
+  printf "%-14s  %-40s  %s\n" "------" "-----" "------------"
+
+  for context in "$dir"/*/CONTEXT.md; do
+    [[ -f "$context" ]] || continue
+    local id title last_updated
+    id=$(basename "$(dirname "$context")")
+    title=$(head -1 "$context" 2>/dev/null | sed 's/^# //' | sed 's/ — Agent Context$//' | sed 's/^[A-Za-z0-9-]*: //')
+    last_updated=$(grep "^\*\*Last updated\*\*" "$context" 2>/dev/null | head -1 | sed 's/\*\*Last updated\*\*: //')
+    printf "%-14s  %-40s  %s\n" "$id" "${title:0:40}" "${last_updated:-(unknown)}"
+  done
 }
 
 
