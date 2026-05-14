@@ -211,9 +211,9 @@ Check which case applies:
 
 If `REPO_ROOT` is `(not in a git repo)`, skip this step and note it in the report.
 
-### 10. Rename this Claude session
+### 10. Rename this Claude session and save session ID
 
-Append an `ai-title` record to the current session file so the chat is named after the ticket:
+Append an `ai-title` record to the current session file so the chat is named after the ticket, and save the session ID so `jt open` can resume it later:
 
 ```bash
 SESSION_ID="$CLAUDE_CODE_SESSION_ID"
@@ -222,6 +222,9 @@ SESSION_FILE="$HOME/.claude/projects/${CWD_SLUG}/${SESSION_ID}.jsonl"
 if [[ -f "$SESSION_FILE" && -n "$SESSION_ID" ]]; then
   python3 -c "import json,sys; print(json.dumps({'type':'ai-title','aiTitle':sys.argv[1],'sessionId':sys.argv[2]}))" \
     "<ID>: <title>" "$SESSION_ID" >> "$SESSION_FILE"
+fi
+if [[ -n "$SESSION_ID" ]]; then
+  echo "$SESSION_ID" > "<TICKETS_DIR>/<ID>/.session_id"
 fi
 ```
 

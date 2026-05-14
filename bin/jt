@@ -216,10 +216,24 @@ cmd_open() {
 
   _jt_checkout "$ticket_id" "$context_file"
 
+  # Resume existing session if we have a stored session ID
+  local session_id_file="$dir/$ticket_id/.session_id"
+  if [[ -f "$session_id_file" ]]; then
+    local session_id
+    session_id=$(cat "$session_id_file")
+    if [[ -n "$session_id" ]]; then
+      echo "Resuming session for $ticket_id..."
+      echo ""
+      claude --resume "$session_id"
+      return
+    fi
+  fi
+
+  # No stored session — start a new one with context pre-loaded
   local session_name
   session_name=$(head -1 "$context_file" | sed 's/^# //' | sed 's/ — Agent Context$//')
 
-  echo "Launching Claude for $ticket_id..."
+  echo "Starting new session for $ticket_id..."
   echo ""
 
   local context_content

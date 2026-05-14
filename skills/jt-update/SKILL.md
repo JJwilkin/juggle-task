@@ -65,6 +65,17 @@ Read `<TICKETS_DIR>/INDEX.md`. Find the row for `<ID>` and update:
 - The **Status** column if changed
 - The **Last Session** column to today's date
 
+## Save session ID
+
+Run the following so `jt open` can resume this session directly next time:
+
+```bash
+SESSION_ID="$CLAUDE_CODE_SESSION_ID"
+if [[ -n "$SESSION_ID" ]]; then
+  echo "$SESSION_ID" > "<TICKETS_DIR>/<ID>/.session_id"
+fi
+```
+
 ## Confirm to user
 
 ```
