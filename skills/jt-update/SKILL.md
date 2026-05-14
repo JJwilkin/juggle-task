@@ -67,12 +67,26 @@ Read `<TICKETS_DIR>/INDEX.md`. Find the row for `<ID>` and update:
 
 ## Save session for resume
 
-Run the following so `jt open` can resume this exact session next time:
+Find the session file by ID (its project dir may differ from `pwd`) and read the real `cwd` from the JSONL so `jt open` resumes from the right project:
 
 ```bash
 SESSION_ID="$CLAUDE_CODE_SESSION_ID"
 if [[ -n "$SESSION_ID" ]]; then
-  printf '%s\n%s\n' "$(pwd)" "$SESSION_ID" > "<TICKETS_DIR>/<ID>/.session"
+  SESSION_FILE=$(find "$HOME/.claude/projects" -maxdepth 2 -name "${SESSION_ID}.jsonl" -type f 2>/dev/null | head -1)
+  SESSION_DIR=""
+  if [[ -f "$SESSION_FILE" ]]; then
+    SESSION_DIR=$(python3 -c "
+import json
+with open('$SESSION_FILE') as f:
+    for line in f:
+        try:
+            d = json.loads(line)
+            if 'cwd' in d:
+                print(d['cwd']); break
+        except: pass" 2>/dev/null)
+  fi
+  [[ -z "$SESSION_DIR" ]] && SESSION_DIR="$(pwd)"
+  printf '%s\n%s\n' "$SESSION_DIR" "$SESSION_ID" > "<TICKETS_DIR>/<ID>/.session"
 fi
 ```
 

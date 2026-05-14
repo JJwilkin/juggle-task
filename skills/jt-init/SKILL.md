@@ -217,19 +217,32 @@ Check which case applies:
 
 If `REPO_ROOT` is `(not in a git repo)`, skip this step and note it in the report.
 
-### 10. Rename this Claude session and save session ID
+### 10. Rename this Claude session and save session for resume
 
-Append an `ai-title` record to the current session file so the chat is named after the ticket, and save the session ID so `jt open` can resume it later:
+Append an `ai-title` record to the session file so the chat is named after the ticket, and save the session's actual project dir + ID so `jt open` can resume it later.
+
+The session file path can't be derived from `pwd` — when Claude Code is opened at a workspace parent and you `cd` into a subdir, `pwd` differs from the project dir Claude is registered under. Find the session file by SESSION_ID, then read its real `cwd` from the JSONL:
 
 ```bash
 SESSION_ID="$CLAUDE_CODE_SESSION_ID"
-CWD_SLUG=$(pwd | sed 's|/|-|g')
-SESSION_FILE="$HOME/.claude/projects/${CWD_SLUG}/${SESSION_ID}.jsonl"
-if [[ -f "$SESSION_FILE" && -n "$SESSION_ID" ]]; then
-  python3 -c "import json,sys; print(json.dumps({'type':'ai-title','aiTitle':sys.argv[1],'sessionId':sys.argv[2]}))" \
-    "<ID>: <title>" "$SESSION_ID" >> "$SESSION_FILE"
+if [[ -n "$SESSION_ID" ]]; then
+  SESSION_FILE=$(find "$HOME/.claude/projects" -maxdepth 2 -name "${SESSION_ID}.jsonl" -type f 2>/dev/null | head -1)
+  if [[ -f "$SESSION_FILE" ]]; then
+    python3 -c "import json,sys; print(json.dumps({'type':'ai-title','aiTitle':sys.argv[1],'sessionId':sys.argv[2]}))" \
+      "<ID>: <title>" "$SESSION_ID" >> "$SESSION_FILE"
+    SESSION_DIR=$(python3 -c "
+import json
+with open('$SESSION_FILE') as f:
+    for line in f:
+        try:
+            d = json.loads(line)
+            if 'cwd' in d:
+                print(d['cwd']); break
+        except: pass" 2>/dev/null)
+  fi
+  [[ -z "$SESSION_DIR" ]] && SESSION_DIR="$(pwd)"
+  printf '%s\n%s\n' "$SESSION_DIR" "$SESSION_ID" > "<TICKETS_DIR>/<ID>/.session"
 fi
-printf '%s\n%s\n' "$(pwd)" "$SESSION_ID" > "<TICKETS_DIR>/<ID>/.session"
 ```
 
 ### 11. Report to user
