@@ -145,9 +145,10 @@ cmd_init() {
   echo ""
   if [[ -f "$skill_file" ]]; then
     local skill_body
-    # Strip YAML frontmatter (everything up to and including second ---) and substitute $ARGUMENTS
-    skill_body=$(awk 'BEGIN{p=0;n=0} /^---/{n++;if(n==2){p=1};next} p{print}' "$skill_file" \
-      | sed "s/\\\$ARGUMENTS/$ticket/g")
+    # Strip YAML frontmatter (everything up to and including second ---)
+    skill_body=$(awk 'BEGIN{p=0;n=0} /^---/{n++;if(n==2){p=1};next} p{print}' "$skill_file")
+    # Substitute $ARGUMENTS via bash parameter expansion — avoids sed delimiter collisions with URLs
+    skill_body="${skill_body//\$ARGUMENTS/$ticket}"
     claude -n "$ticket" --add-dir "$dir" \
       --append-system-prompt "$skill_body" \
       "/jt-init $ticket"
