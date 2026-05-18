@@ -120,41 +120,137 @@ cmd_help() {
 juggle (jt) v${JT_VERSION} — ticket context manager for Claude Code
 
 Usage:
-  jt init   <ticket>          create ticket context (launches Claude)
-  jt update                   save session progress to CONTEXT.md (launches Claude)
-  jt open   [ticket]          checkout branch + launch Claude with context pre-loaded
-  jt ls                       list all tracked tickets
-  jt upgrade                  upgrade jt to the latest version
-  jt config                   show current tickets directory
-  jt config set <path>        set tickets directory
-  jt help                     show this message
+  jt init   <ticket> [--project <id>]   create ticket context (launches Claude)
+  jt update                              save session progress to CONTEXT.md (launches Claude)
+  jt open   [ticket]                     checkout branch + launch Claude with context pre-loaded
+  jt ls                                  list all tracked tickets
+  jt project init <id-or-url>            create a new project / epic
+  jt project ls                          list all projects
+  jt project show <id>                   show a project's PROJECT.md
+  jt upgrade                             upgrade jt to the latest version
+  jt config                              show current tickets directory
+  jt config set <path>                   set tickets directory
+  jt help                                show this message
 
-Claude skills: /jt-init, /jt-update
+Claude skills: /jt-init, /jt-update, /jt-project-init
 
 Docs: https://github.com/JJwilkin/juggle-task
 EOF
 }
 
 cmd_init() {
-  local ticket="${1:-}"
-  [[ -z "$ticket" ]] && { echo "Usage: jt init <TICKET-ID or URL>"; exit 1; }
+  # Parse args: <ticket> [--project <id>]
+  local ticket="" project_id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project)
+        project_id="${2:-}"
+        shift 2
+        ;;
+      *)
+        if [[ -z "$ticket" ]]; then
+          ticket="$1"
+        fi
+        shift
+        ;;
+    esac
+  done
+  [[ -z "$ticket" ]] && { echo "Usage: jt init <TICKET-ID or URL> [--project <id>]"; exit 1; }
+
   local dir
   dir=$(_jt_tickets_dir)
   local skill_file="$HOME/.claude/skills/jt-init/SKILL.md"
-  echo "Launching Claude to initialize $ticket..."
+  local args="$ticket"
+  [[ -n "$project_id" ]] && args="$args --project $project_id"
+
+  echo "Launching Claude to initialize $ticket${project_id:+ (project: $project_id)}..."
   echo ""
   if [[ -f "$skill_file" ]]; then
     local skill_body
-    # Strip YAML frontmatter (everything up to and including second ---)
     skill_body=$(awk 'BEGIN{p=0;n=0} /^---/{n++;if(n==2){p=1};next} p{print}' "$skill_file")
-    # Substitute $ARGUMENTS via bash parameter expansion — avoids sed delimiter collisions with URLs
-    skill_body="${skill_body//\$ARGUMENTS/$ticket}"
+    skill_body="${skill_body//\$ARGUMENTS/$args}"
     claude -n "$ticket" --add-dir "$dir" \
       --append-system-prompt "$skill_body" \
-      "/jt-init $ticket"
+      "/jt-init $args"
   else
-    claude -n "$ticket" --add-dir "$dir" "/jt-init $ticket"
+    claude -n "$ticket" --add-dir "$dir" "/jt-init $args"
   fi
+}
+
+cmd_project() {
+  local sub="${1:-}"
+  shift || true
+  local dir
+  dir=$(_jt_tickets_dir)
+
+  case "$sub" in
+    init)
+      local arg="${1:-}"
+      [[ -z "$arg" ]] && { echo "Usage: jt project init <ID-or-Linear-URL>"; exit 1; }
+      local skill_file="$HOME/.claude/skills/jt-project-init/SKILL.md"
+      echo "Launching Claude to initialize project $arg..."
+      echo ""
+      if [[ -f "$skill_file" ]]; then
+        local skill_body
+        skill_body=$(awk 'BEGIN{p=0;n=0} /^---/{n++;if(n==2){p=1};next} p{print}' "$skill_file")
+        skill_body="${skill_body//\$ARGUMENTS/$arg}"
+        claude -n "Project: $arg" --add-dir "$dir" \
+          --append-system-prompt "$skill_body" \
+          "/jt-project-init $arg"
+      else
+        claude -n "Project: $arg" --add-dir "$dir" "/jt-project-init $arg"
+      fi
+      ;;
+    ls)
+      local found=0
+      for project_file in "$dir"/projects/*/PROJECT.md; do
+        [[ -f "$project_file" ]] || continue
+        found=1; break
+      done
+      if [[ $found -eq 0 ]]; then
+        echo "No projects found at: $dir/projects/"
+        echo "Run 'jt project init <id>' to create your first project."
+        return
+      fi
+      printf "%-14s  %-50s  %s\n" "PROJECT" "TITLE" "STATUS"
+      printf "%-14s  %-50s  %s\n" "-------" "-----" "------"
+      for project_file in "$dir"/projects/*/PROJECT.md; do
+        [[ -f "$project_file" ]] || continue
+        local id title status
+        id=$(basename "$(dirname "$project_file")")
+        title=$(head -1 "$project_file" 2>/dev/null | sed 's/^# //' | sed 's/^[A-Za-z0-9-]*: //')
+        status=$(grep "^\*\*Status\*\*" "$project_file" 2>/dev/null | head -1 | sed 's/\*\*Status\*\*: //')
+        printf "%-14s  %-50s  %s\n" "$id" "${title:0:50}" "${status:-(unknown)}"
+      done
+      ;;
+    show)
+      local id="${1:-}"
+      [[ -z "$id" ]] && { echo "Usage: jt project show <id>"; exit 1; }
+      local pfile="$dir/projects/$id/PROJECT.md"
+      if [[ ! -f "$pfile" ]]; then
+        # case-insensitive fallback: try uppercase
+        local id_up
+        id_up=$(_jt_normalize_id "$id")
+        pfile="$dir/projects/$id_up/PROJECT.md"
+      fi
+      if [[ -f "$pfile" ]]; then
+        cat "$pfile"
+      else
+        echo "No project found with id: $id"
+        echo "Run 'jt project ls' to see available projects."
+        exit 1
+      fi
+      ;;
+    "")
+      echo "Usage: jt project <init|ls|show> [args]"
+      exit 1
+      ;;
+    *)
+      echo "Unknown project subcommand: $sub"
+      echo "Usage: jt project <init|ls|show> [args]"
+      exit 1
+      ;;
+  esac
 }
 
 cmd_update() {
@@ -299,6 +395,7 @@ main() {
     update)         cmd_update "$@" ;;
     open)           cmd_open "$@" ;;
     ls)             cmd_ls ;;
+    project)        cmd_project "$@" ;;
     upgrade)        cmd_upgrade ;;
     config)         cmd_config "$@" ;;
     help|--help|-h) cmd_help ;;

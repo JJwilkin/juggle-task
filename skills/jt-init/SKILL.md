@@ -14,7 +14,9 @@ Parse `$ARGUMENTS` to extract a ticket ID. Accept any of these formats:
 - Linear URL: `https://linear.app/<org>/issue/PROJ-123/some-title` — extract the segment matching `[A-Z]+-[0-9]+` from the URL path
 - GitHub Issues URL: extract the issue number
 
-If no argument provided, ask the user for a ticket ID or URL.
+Also parse an optional `--project <id>` flag — if present, capture the value as `PROJECT_ID` and remove it from the rest of the argument processing.
+
+If no ticket argument provided, ask the user for a ticket ID or URL.
 
 ## Steps
 
@@ -56,6 +58,27 @@ Use the confirmed path as `REPO_ROOT`. If the user enters 'none' or leaves it bl
 - "Brief description (optional):"
 
 Set priority and status to `(unknown)`, url to the argument if it was a URL.
+
+### 2.5. Link to a project (optional)
+
+If `PROJECT_ID` was already captured from the `--project <id>` flag, skip the prompt and use it.
+
+Otherwise, list existing projects:
+```bash
+ls -1 <TICKETS_DIR>/projects/ 2>/dev/null
+```
+
+Show the list (with titles read from each `PROJECT.md` first line) and ask:
+
+> "Link this ticket to a project? Options:
+>  - Enter to skip (no project link)
+>  - Type an existing project ID (e.g. EPIC-1)
+>  - Type a new project ID to create it inline"
+
+Handle the response:
+- Empty / skip: set `PROJECT_ID=""` and proceed
+- Existing ID: verify `<TICKETS_DIR>/projects/<PROJECT_ID>/PROJECT.md` exists, capture it
+- New ID: invoke the `/jt-project-init` flow inline (steps 4-7 of that skill) to create the project dir + PROJECT.md, then capture the ID
 
 ### 3. Determine branch name
 
@@ -106,10 +129,13 @@ Write `<TICKETS_DIR>/<ID>/README.md`:
 
 Write `<TICKETS_DIR>/<ID>/CONTEXT.md`. This is the key file — populate "What This Ticket Is About" as 2-4 plain prose sentences from the description.
 
+If `PROJECT_ID` is set, include the project directive line and the `**Project**` field. If not set, omit both lines entirely.
+
 ```markdown
 # <ID>: <title> — Agent Context
 
 > Read this before resuming work. Any agent picking up this ticket should start here.
+> This ticket is part of project [<PROJECT_ID>](../projects/<PROJECT_ID>/PROJECT.md) — read PROJECT.md first for the bigger picture and sibling tickets.
 
 ## Current State
 
@@ -117,6 +143,7 @@ Write `<TICKETS_DIR>/<ID>/CONTEXT.md`. This is the key file — populate "What T
 **Last updated**: <today YYYY-MM-DD>
 **Working branch**: `<branch-name>`
 **Repo**: <REPO_ROOT>
+**Project**: [<PROJECT_ID>](../projects/<PROJECT_ID>/PROJECT.md)
 
 ## What This Ticket Is About
 
@@ -186,12 +213,18 @@ Ticket: <url>
 | (to be filled) | |
 ```
 
-### 8. Update INDEX.md
+### 8. Update INDEX.md (and PROJECT.md if linked)
 
 Read `<TICKETS_DIR>/INDEX.md`. Append a new table row:
 
 ```
 | [<ID>](./<ID>/README.md) | <title> | <branch-name> | in-progress | <today YYYY-MM-DD> |
+```
+
+If `PROJECT_ID` is set, also append a row to `<TICKETS_DIR>/projects/<PROJECT_ID>/PROJECT.md`'s **Tickets** table:
+
+```
+| [<ID>](../../<ID>/README.md) | <title> | in-progress | <today YYYY-MM-DD> |
 ```
 
 If INDEX.md does not exist, create it:
